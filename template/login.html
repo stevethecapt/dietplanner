@@ -4,147 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Diet Planning System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #74b9ff, #0984e3);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #333;
-        }
-
-        .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .logo h1 {
-            font-size: 2rem;
-            color: #0984e3;
-            font-weight: 600;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 400;
-            color: #555;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #0984e3;
-            box-shadow: 0 0 10px rgba(9, 132, 227, 0.3);
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 0.8rem;
-            background: linear-gradient(135deg, #0984e3, #74b9ff);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(9, 132, 227, 0.4);
-        }
-
-        .links {
-            text-align: center;
-            margin-top: 1.5rem;
-        }
-
-        .links a {
-            color: #0984e3;
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin: 0 0.5rem;
-            transition: color 0.3s;
-        }
-
-        .links a:hover {
-            color: #74b9ff;
-        }
-
-        .divider {
-            margin: 1rem 0;
-            text-align: center;
-            position: relative;
-        }
-
-        .divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #ddd;
-        }
-
-        .divider span {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 0 1rem;
-            color: #777;
-            font-size: 0.8rem;
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                margin: 1rem;
-                padding: 1.5rem;
-            }
-        }
-    </style>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="login-container">
@@ -152,6 +13,7 @@
             <h1>DietPlanner</h1>
         </div>
         <form action="#" method="post">
+            <form action="{{ url_for('login') }}" method="post">
             <div class="form-group">
                 <label for="email">Email or Username</label>
                 <input type="text" id="email" name="email" required>
@@ -163,8 +25,8 @@
             <button type="submit" class="btn-login">Login</button>
         </form>
         <div class="links">
-            <a href="resetpassword.html">Forgot Password?</a>
-            <a href="signup.html">SignUp</a>
+              <a href="{{ url_for('reset_password') }}">Forgot Password?</a>
+              <a href="{{ url_for('signup') }}">SignUp</a>
         </div>
     </div>
 </body>
