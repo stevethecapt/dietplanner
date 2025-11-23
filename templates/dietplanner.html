@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diet Planner Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <div class="logo">DietPlanner</div>
+        <ul>
+          <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+      </nav>
+    </header>
+    <section class="dashboard-section">
+      <div class="dashboard-card">
+        <h2>Rekomendasi Diet & Olahraga</h2>
+        <form action="{{ url_for('dietplanner') }}" method="POST" class="diet-form">
+          <div class="form-group">
+            <label for="weight">Berat Badan (kg):</label>
+            <input type="number" id="weight" name="weight" required min="1" step="0.1" value="{{ request.form.weight or '' }}" />
+          </div>
+          <div class="form-group">
+            <label for="height">Tinggi Badan (cm):</label>
+            <input type="number" id="height" name="height" required min="1" value="{{ request.form.height or '' }}" />
+          </div>
+          <div class="form-group">
+            <label for="age">Usia (tahun):</label>
+            <input type="number" id="age" name="age" required min="1" value="{{ request.form.age or '' }}" />
+          </div>
+          <div class="form-group">
+            <label for="gender">Jenis Kelamin:</label>
+            <select id="gender" name="gender" required>
+              <option value="">Pilih</option>
+              <option value="male" {% if request.form.gender == 'male' %}selected{% endif %}>Laki-laki</option>
+              <option value="female" {% if request.form.gender == 'female' %}selected{% endif %}>Perempuan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="activity">Tingkat Aktivitas:</label>
+            <select id="activity" name="activity" required>
+              <option value="">Pilih</option>
+              <option value="sedentary" {% if request.form.activity == 'sedentary' %}selected{% endif %}>Sedentary (Jarang olahraga)</option>
+              <option value="light" {% if request.form.activity == 'light' %}selected{% endif %}>Light (Olahraga ringan 1-3 hari/minggu)</option>
+              <option value="moderate" {% if request.form.activity == 'moderate' %}selected{% endif %}>Moderate (Olahraga sedang 3-5 hari/minggu)</option>
+              <option value="active" {% if request.form.activity == 'active' %}selected{% endif %}>Active (Olahraga berat 6-7 hari/minggu)</option>
+              <option value="very_active" {% if request.form.activity == 'very_active' %}selected{% endif %}>Very Active (Olahraga sangat berat atau pekerjaan fisik)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="goal">Tujuan Diet:</label>
+            <select id="goal" name="goal" required>
+              <option value="">Pilih</option>
+              <option value="lose_weight" {% if request.form.goal == 'lose_weight' %}selected{% endif %}>Turun Berat Badan</option>
+              <option value="maintain_weight" {% if request.form.goal == 'maintain_weight' %}selected{% endif %}>Pertahankan Berat Badan</option>
+              <option value="gain_weight" {% if request.form.goal == 'gain_weight' %}selected{% endif %}>Naik Berat Badan</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Hitung Rekomendasi</button>
+        </form>
+        {% if result %}
+        <div class="result-box">
+          <h3>Hasil Analisis</h3>
+          <p><strong>Kalori Harian Ideal:</strong> {{ result.daily_calories }} kcal</p>
+          <p><strong>Deposit Kalori:</strong> {{ result.deposit_calories }} kcal</p>
+          <p><strong>Olahraga yang Disarankan:</strong> {{ result.exercise }}</p>
+          <p><strong>Makanan yang Cocok:</strong> {{ result.food }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </body>
+</html>

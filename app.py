@@ -3,7 +3,6 @@ from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
-from contextlib import suppress
 
 # Inisialisasi Aplikasi Flask
 app = Flask(__name__)
@@ -16,37 +15,6 @@ app.config['MYSQL_PASSWORD'] = ''  # jika MySQL pakai password, isi di sini
 app.config['MYSQL_DB'] = 'dietplanner'
 
 mysql = MySQL(app)
-
-
-# -- Database initialization -------------------------------------------------
-def create_tables():
-    """Create required tables if they don't exist. Safe to call multiple times."""
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                fullname VARCHAR(255) NOT NULL,
-                email VARCHAR(255) NOT NULL UNIQUE,
-                username VARCHAR(100) NOT NULL UNIQUE,
-                password_hash VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """
-        )
-        mysql.connection.commit()
-        app.logger.info('Ensured `users` table exists.')
-    except Exception as e:
-        # Log error but don't crash the app at import time.
-        app.logger.error('Failed to ensure `users` table exists: %s', e)
-
-
-# Try to create tables during startup if a DB is reachable. Fail silently with a log.
-with suppress(Exception):
-    with app.app_context():
-        create_tables()
-
 
 # ---------------------------------------------------------
 # ROUTE: Home Page
@@ -63,16 +31,13 @@ def index():
 def login():
     if request.method == 'POST':
 
-        login_input = request.form.get('email')  # bisa berisi email atau username
+        email = request.form.get('email')
         password_input = request.form.get('password')
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-        # Ambil user berdasarkan email atau username
-        cursor.execute(
-            'SELECT * FROM users WHERE email = %s OR username = %s',
-            (login_input, login_input)
-        )
+        # Ambil user by email
+        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
         user = cursor.fetchone()
 
         # Validasi login
@@ -83,9 +48,10 @@ def login():
             flash('Login berhasil!')
             return redirect(url_for('index'))
         else:
-            flash('Email/Username atau password salah.')
+            flash('Email atau password salah.')
 
     return render_template('login.html')
+
 
 # ---------------------------------------------------------
 # ROUTE: Signup / Register
@@ -143,16 +109,77 @@ def reset_password():
     return render_template('resetpassword.html')
 
 
+
 # ---------------------------------------------------------
-# ROUTE: Diet 21 Hari (protected)
+# ROUTE: Diet Planner (protected)
 # ---------------------------------------------------------
-@app.route('/diet21hari')
-def diet21hari():
+@app.route('/dietplanner', methods=['GET', 'POST'])
+def dietplanner():
     if not session.get('loggedin'):
         flash("Silakan login terlebih dahulu.")
         return redirect(url_for('login'))
 
-    return render_template("diet21hari.html")
+    result = None
+    if request.method == 'POST':
+        # Ambil data dari form
+        weight = float(request.form.get('weight', 0))
+        height = float(request.form.get('height', 0))
+        age = int(request.form.get('age', 0))
+        gender = request.form.get('gender')
+        activity = request.form.get('activity')
+        goal = request.form.get('goal')
+
+        # Hitung BMR (Basal Metabolic Rate)
+        if gender == 'male':
+            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+        else:
+            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+
+        # Faktor aktivitas
+        activity_factors = {
+            'sedentary': 1.2,
+            'light': 1.375,
+            'moderate': 1.55,
+            'active': 1.725,
+            'very_active': 1.9
+        }
+        factor = activity_factors.get(activity, 1.2)
+        daily_calories = int(bmr * factor)
+
+        # Deposit kalori (defisit/surplus sesuai goal)
+        if goal == 'lose_weight':
+            deposit_calories = daily_calories - 500
+        elif goal == 'gain_weight':
+            deposit_calories = daily_calories + 500
+        else:
+            deposit_calories = daily_calories
+
+        # Rekomendasi olahraga
+        exercise_map = {
+            'sedentary': 'Jalan kaki ringan, stretching',
+            'light': 'Jogging, yoga, bersepeda santai',
+            'moderate': 'Renang, gym, aerobik',
+            'active': 'HIIT, lari, olahraga tim',
+            'very_active': 'Crossfit, olahraga kompetitif'
+        }
+        exercise = exercise_map.get(activity, 'Jalan kaki ringan')
+
+        # Rekomendasi makanan sederhana
+        if goal == 'lose_weight':
+            food = 'Sayuran, dada ayam, ikan, buah, oatmeal, kacang-kacangan'
+        elif goal == 'gain_weight':
+            food = 'Daging, telur, susu, nasi, kentang, roti gandum, buah'
+        else:
+            food = 'Makanan seimbang: nasi, lauk, sayur, buah, protein'
+
+        result = {
+            'daily_calories': daily_calories,
+            'deposit_calories': deposit_calories,
+            'exercise': exercise,
+            'food': food
+        }
+
+    return render_template("dietplanner.html", result=result)
 
 
 # ---------------------------------------------------------

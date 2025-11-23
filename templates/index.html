@@ -24,14 +24,14 @@
           <li><a href="#contact">Contact</a></li>
 
           {% if session.get('username') %}
-            <!-- User sudah login -->
-            <li><a href="#">{{ session['username'] }}</a></li>
-            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+          <!-- User sudah login -->
+          <li><a href="#">{{ session['username'] }}</a></li>
+          <li><a href="{{ url_for('logout') }}">Logout</a></li>
 
           {% else %}
-            <!-- User belum login -->
-            <li><a href="{{ url_for('login') }}">Login</a></li>
-            <li><a href="{{ url_for('signup') }}">SignUp</a></li>
+          <!-- User belum login -->
+          <li><a href="{{ url_for('login') }}">Login</a></li>
+          <li><a href="{{ url_for('signup') }}">SignUp</a></li>
           {% endif %}
         </ul>
       </nav>
@@ -46,11 +46,12 @@
         </p>
 
         {% if session.get('username') %}
-          <a href="{{ url_for('diet21hari') }}" class="btn-primary">Get Started</a>
+        <a href="{{ url_for('dietplanner') }}" class="btn-primary"
+          >Get Started</a
+        >
         {% else %}
-          <a href="{{ url_for('login') }}" class="btn-primary">Get Started</a>
+        <a href="{{ url_for('login') }}" class="btn-primary">Get Started</a>
         {% endif %}
-
       </div>
       <div class="hero-image">
         <img
