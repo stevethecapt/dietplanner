@@ -22,8 +22,17 @@
           <li><a href="#features">Features</a></li>
           <li><a href="#about">About</a></li>
           <li><a href="#contact">Contact</a></li>
-          <li><a href="{{ url_for('login') }}">Login</a></li>
-          <li><a href="{{ url_for('signup') }}">SignUp</a></li>
+
+          {% if session.get('username') %}
+            <!-- User sudah login -->
+            <li><a href="#">{{ session['username'] }}</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+
+          {% else %}
+            <!-- User belum login -->
+            <li><a href="{{ url_for('login') }}">Login</a></li>
+            <li><a href="{{ url_for('signup') }}">SignUp</a></li>
+          {% endif %}
         </ul>
       </nav>
     </header>
@@ -35,7 +44,13 @@
           Achieve your health goals with personalized diet plans tailored just
           for you.
         </p>
-        <a href="#" class="btn-primary">Get Started</a>
+
+        {% if session.get('username') %}
+          <a href="{{ url_for('diet21hari') }}" class="btn-primary">Get Started</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="btn-primary">Get Started</a>
+        {% endif %}
+
       </div>
       <div class="hero-image">
         <img

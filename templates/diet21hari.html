@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Diet Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header>
+    <nav>
+        <div class="logo">DietPlanner</div>
+        <ul>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </nav>
+</header>
+
+<section class="dashboard-section">
+    <div class="dashboard-card">
+        <h2>Welcome, {{ username }}!</h2>
+        <p>Ready to start your 21-Day Diet Program?</p>
+
+        <a href="#" class="btn-primary">Mulai Program 21 Hari</a>
+    </div>
+</section>
+
+</body>
+</html>
