@@ -63,13 +63,16 @@ def index():
 def login():
     if request.method == 'POST':
 
-        email = request.form.get('email')
+        login_input = request.form.get('email')  # bisa berisi email atau username
         password_input = request.form.get('password')
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-        # Ambil user by email
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+        # Ambil user berdasarkan email atau username
+        cursor.execute(
+            'SELECT * FROM users WHERE email = %s OR username = %s',
+            (login_input, login_input)
+        )
         user = cursor.fetchone()
 
         # Validasi login
@@ -80,10 +83,9 @@ def login():
             flash('Login berhasil!')
             return redirect(url_for('index'))
         else:
-            flash('Email atau password salah.')
+            flash('Email/Username atau password salah.')
 
     return render_template('login.html')
-
 
 # ---------------------------------------------------------
 # ROUTE: Signup / Register
