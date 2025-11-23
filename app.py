@@ -3,6 +3,7 @@ from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
+from contextlib import suppress
 
 # Inisialisasi Aplikasi Flask
 app = Flask(__name__)
@@ -15,6 +16,37 @@ app.config['MYSQL_PASSWORD'] = ''  # jika MySQL pakai password, isi di sini
 app.config['MYSQL_DB'] = 'dietplanner'
 
 mysql = MySQL(app)
+
+
+# -- Database initialization -------------------------------------------------
+def create_tables():
+    """Create required tables if they don't exist. Safe to call multiple times."""
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                fullname VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                username VARCHAR(100) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """
+        )
+        mysql.connection.commit()
+        app.logger.info('Ensured `users` table exists.')
+    except Exception as e:
+        # Log error but don't crash the app at import time.
+        app.logger.error('Failed to ensure `users` table exists: %s', e)
+
+
+# Try to create tables during startup if a DB is reachable. Fail silently with a log.
+with suppress(Exception):
+    with app.app_context():
+        create_tables()
+
 
 # ---------------------------------------------------------
 # ROUTE: Home Page
