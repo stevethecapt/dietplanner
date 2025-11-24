@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_mysqldb import MySQL
+import MySQLdb
 import MySQLdb.cursors
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -31,24 +32,32 @@ def index():
 def login():
     if request.method == 'POST':
 
-        email = request.form.get('email')
+        login_input = request.form.get('email')  # bisa berisi email atau username
         password_input = request.form.get('password')
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-        # Ambil user by email
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        user = cursor.fetchone()
+        try:
+            # Ambil user berdasarkan email atau username
+            cursor.execute(
+                'SELECT * FROM users WHERE email = %s OR username = %s',
+                (login_input, login_input)
+            )
+            user = cursor.fetchone()
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
 
         # Validasi login
         if user and check_password_hash(user['password_hash'], password_input):
             session['loggedin'] = True
             session['id'] = user['id']
             session['username'] = user['username']
-            flash('Login berhasil!')
+            flash('Login berhasil!', 'success')
             return redirect(url_for('index'))
         else:
-            flash('Email atau password salah.')
+            flash('Email atau password salah.', 'error')
 
     return render_template('login.html')
 
@@ -67,32 +76,53 @@ def signup():
         confirm_password = request.form.get('confirm-password')
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        try:
+            # Cek apakah email atau username sudah terdaftar
+            cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+            account_email = cursor.fetchone()
+            cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+            account_username = cursor.fetchone()
 
-        # Cek apakah email sudah terdaftar
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
-        account = cursor.fetchone()
+            if account_email:
+                flash('Email sudah terdaftar!', 'error')
+            elif account_username:
+                flash('Username sudah terdaftar!', 'error')
+            elif password != confirm_password:
+                flash('Password dan konfirmasi tidak sama.', 'error')
+            elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
+                flash('Format email tidak valid.', 'error')
+            elif not fullname or not username or not password:
+                flash('Semua field wajib diisi.', 'error')
+            else:
+                # Hash password
+                hashed_pw = generate_password_hash(password)
 
-        if account:
-            flash('Email sudah terdaftar!')
-        elif password != confirm_password:
-            flash('Password dan konfirmasi tidak sama.')
-        elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-            flash('Format email tidak valid.')
-        elif not fullname or not username or not password:
-            flash('Semua field wajib diisi.')
-        else:
-            # Hash password
-            hashed_pw = generate_password_hash(password)
-
-            cursor.execute(
-                'INSERT INTO users (fullname, email, username, password_hash) '
-                'VALUES (%s, %s, %s, %s)',
-                (fullname, email, username, hashed_pw)
-            )
-
-            mysql.connection.commit()
-            flash('Registrasi berhasil! Silakan login.')
-            return redirect(url_for('login'))
+                try:
+                    cursor.execute(
+                        'INSERT INTO users (fullname, email, username, password_hash) '
+                        'VALUES (%s, %s, %s, %s)',
+                        (fullname, email, username, hashed_pw)
+                    )
+                    mysql.connection.commit()
+                    flash('Registrasi berhasil! Silakan login.', 'success')
+                    return redirect(url_for('login'))
+                except MySQLdb.IntegrityError as ie:
+                    # This handles unique constraint violations that may happen due to race conditions
+                    errstr = str(ie)
+                    if 'email' in errstr.lower():
+                        flash('Gagal: Email sudah terdaftar (konkurensi).', 'error')
+                    elif 'username' in errstr.lower():
+                        flash('Gagal: Username sudah terdaftar (konkurensi).', 'error')
+                    else:
+                        flash('Gagal registrasi: data sudah ada.', 'error')
+                except Exception as e:
+                    app.logger.error('Error saat mendaftar user: %s', e)
+                    flash('Terjadi kesalahan saat registrasi. Coba lagi nanti.', 'error')
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
 
     return render_template('signup.html')
 
@@ -104,7 +134,7 @@ def signup():
 def reset_password():
     if request.method == 'POST':
         username = request.form.get('username')
-        flash(f'Instruksi reset password telah dikirim ke {username}. (simulasi)')
+        flash(f'Instruksi reset password telah dikirim ke {username}. (simulasi)', 'info')
         return redirect(url_for('login'))
     return render_template('resetpassword.html')
 
@@ -116,7 +146,7 @@ def reset_password():
 @app.route('/dietplanner', methods=['GET', 'POST'])
 def dietplanner():
     if not session.get('loggedin'):
-        flash("Silakan login terlebih dahulu.")
+        flash("Silakan login terlebih dahulu.", 'error')
         return redirect(url_for('login'))
 
     result = None
@@ -188,7 +218,7 @@ def dietplanner():
 @app.route('/logout')
 def logout():
     session.clear()
-    flash("Anda telah logout.")
+    flash("Anda telah logout.", 'info')
     return redirect(url_for('index'))
 
 

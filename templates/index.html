@@ -14,6 +14,15 @@
     />
   </head>
   <body>
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="flash-messages container">
+      {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
     <header>
       <nav>
         <div class="logo">DietPlanner</div>
@@ -50,7 +59,8 @@
           >Get Started</a
         >
         {% else %}
-        <a href="{{ url_for('login') }}" class="btn-primary">Get Started</a>
+        <!-- Unauthenticated: show modal confirm instead of direct link -->
+        <a href="#" id="get-started-btn" class="btn-primary">Get Started</a>
         {% endif %}
       </div>
       <div class="hero-image">
@@ -82,5 +92,61 @@
     <footer>
       <p>&copy; 2023 DietPlanner. All rights reserved.</p>
     </footer>
+    <!-- Modal for unauthenticated Get Started -->
+    <div id="auth-modal" class="modal" aria-hidden="true">
+      <div class="modal-backdrop" id="modal-backdrop"></div>
+      <div
+        class="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <h3 id="modal-title">Perlu Login</h3>
+        <p>
+          Anda harus login untuk melanjutkan ke fitur Diet Planner. Ingin login
+          sekarang?
+        </p>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="btn-secondary">Batal</button>
+          <button id="modal-ok" class="btn-primary">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var btn = document.getElementById("get-started-btn");
+        var modal = document.getElementById("auth-modal");
+        var backdrop = document.getElementById("modal-backdrop");
+        var ok = document.getElementById("modal-ok");
+        var cancel = document.getElementById("modal-cancel");
+        if (btn && modal) {
+          function show() {
+            modal.setAttribute("aria-hidden", "false");
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden";
+          }
+          function hide() {
+            modal.setAttribute("aria-hidden", "true");
+            modal.style.display = "none";
+            document.body.style.overflow = "auto";
+          }
+          btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            show();
+          });
+          cancel.addEventListener("click", function (e) {
+            e.preventDefault();
+            hide();
+          });
+          backdrop.addEventListener("click", function () {
+            hide();
+          });
+          ok.addEventListener("click", function () {
+            window.location = "{{ url_for('login') }}";
+          });
+        }
+      })();
+    </script>
   </body>
 </html>
