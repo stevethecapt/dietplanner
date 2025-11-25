@@ -109,7 +109,6 @@ def reset_password():
     return render_template('resetpassword.html')
 
 
-
 # ---------------------------------------------------------
 # ROUTE: Diet Planner (protected)
 # ---------------------------------------------------------
@@ -129,7 +128,27 @@ def dietplanner():
         activity = request.form.get('activity')
         goal = request.form.get('goal')
 
-        # Hitung BMR (Basal Metabolic Rate)
+        # Hitung BMI
+        height_m = height / 100
+        bmi = round(weight / (height_m * height_m), 1)
+
+        # Status BMI (DITAMBAHKAN sesuai permintaan)
+        if bmi < 16:
+            bmi_status = "Sangat Kurus"
+        elif 16 <= bmi < 18.5:
+            bmi_status = "Kurus"
+        elif 18.5 <= bmi < 22:
+            bmi_status = "Normal"
+        elif 22 <= bmi < 25:
+            bmi_status = "Ideal"
+        elif 25 <= bmi < 27:
+            bmi_status = "Gemuk"
+        elif 27 <= bmi < 30:
+            bmi_status = "Sangat Gemuk"
+        else:
+            bmi_status = "Obesitas"
+
+        # Hitung BMR
         if gender == 'male':
             bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
         else:
@@ -146,16 +165,23 @@ def dietplanner():
         factor = activity_factors.get(activity, 1.2)
         daily_calories = int(bmr * factor)
 
-        # Deposit kalori (defisit/surplus sesuai goal)
-        if goal == 'lose_weight':
-            deposit_calories = daily_calories - 500
-        elif goal == 'gain_weight':
-            deposit_calories = daily_calories + 500
+        # Rekomendasi otomatis berdasarkan BMI
+        if bmi_status in ["Sangat Kurus", "Kurus"]:
+            system_recommendation = "Kekurangan gizi. Direkomendasikan menaikkan berat badan."
+            deposit_calories = daily_calories + 400
+        elif bmi_status == "Normal":
+            system_recommendation = "Berat badan ideal."
+            deposit_calories = daily_calories
+        elif bmi_status in ["Overweight", "Obesitas"]:
+            system_recommendation = "Kelebihan berat badan. Direkomendasikan program diet dan olahraga."
+            deposit_calories = daily_calories - 400
         else:
+            system_recommendation = "Perlu konsultasi lebih detail."
             deposit_calories = daily_calories
 
         # Rekomendasi olahraga
         exercise_map = {
+            'None': 'Tidak Pernah Olahraga',
             'sedentary': 'Jalan kaki ringan, stretching',
             'light': 'Jogging, yoga, bersepeda santai',
             'moderate': 'Renang, gym, aerobik',
@@ -164,19 +190,57 @@ def dietplanner():
         }
         exercise = exercise_map.get(activity, 'Jalan kaki ringan')
 
-        # Rekomendasi makanan sederhana
-        if goal == 'lose_weight':
-            food = 'Sayuran, dada ayam, ikan, buah, oatmeal, kacang-kacangan'
-        elif goal == 'gain_weight':
-            food = 'Daging, telur, susu, nasi, kentang, roti gandum, buah'
+        # Rekomendasi makanan berdasarkan status BMI
+        if bmi_status in ["Sangat Kurus", "Kurus"]:
+            food = "Susu, telur, daging, roti gandum, selai kacang, alpukat, pisang"
+        elif bmi_status in ["Overweight", "Obesitas"]:
+            food = "Sayur, ikan, dada ayam, oatmeal, apel, almond, yogurt low-fat"
         else:
-            food = 'Makanan seimbang: nasi, lauk, sayur, buah, protein'
+            food = "Menjaga porsi seimbang: karbohidrat, protein, serat, vitamin"
+
+        # ---------------------------------------------------------
+        # ✨ LOGIKA TAMBAHAN: Protein Harian
+        # ---------------------------------------------------------
+        protein_per_kg = 1.5
+        protein_grams = round(weight * protein_per_kg, 1)  # default
+
+        # Inisialisasi goal
+        goal_calories = deposit_calories
+        goal_food = food
+        goal_exercise = exercise
+        goal_protein = protein_grams
+
+        if goal == "gain":
+            goal_calories = deposit_calories + 300
+            goal_food = "Kalori tinggi sehat: daging, susu full cream, kacang, alpukat, pisang, nasi merah."
+            goal_exercise = "Latihan angkat beban 3–4x/minggu + makan tinggi protein."
+            goal_protein = round(weight * 1.8, 1)
+        
+        elif goal == "maintain":
+            goal_calories = deposit_calories
+            goal_food = "Porsi stabil: protein sedang, karbo kompleks, serat, sayur, buah."
+            goal_exercise = "Olahraga ringan–sedang 3–5x/minggu."
+            goal_protein = protein_grams
+
+        elif goal == "loss":
+            goal_calories = deposit_calories - 300
+            goal_food = "Defisit kalori: dada ayam, ikan, brokoli, oatmeal, apel, yogurt rendah lemak."
+            goal_exercise = "Cardio + latihan ringan 5x/minggu."
+            goal_protein = round(weight * 1.2, 1)
 
         result = {
+            'bmi': bmi,
+            'bmi_status': bmi_status,
+            'system_recommendation': system_recommendation,
             'daily_calories': daily_calories,
             'deposit_calories': deposit_calories,
             'exercise': exercise,
-            'food': food
+            'food': food,
+            'protein': protein_grams,
+            'goal_calories': goal_calories,
+            'goal_food': goal_food,
+            'goal_exercise': goal_exercise,
+            'goal_protein': goal_protein
         }
 
     return render_template("dietplanner.html", result=result)
@@ -191,9 +255,29 @@ def logout():
     flash("Anda telah logout.")
     return redirect(url_for('index'))
 
+# ---------------------------------------------------------
+# USER INFO (harus sebelum app.run)
+# ---------------------------------------------------------
+@app.route('/user_info')
+def user_info():
+    if 'username' not in session:
+        return {"error": "Not logged in"}, 403
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT fullname, email, created_at
+        FROM users
+        WHERE username = %s
+    """, (session['username'],))
+    
+    data = cursor.fetchone()
+    return data
+
 
 # ---------------------------------------------------------
 # RUN SERVER
 # ---------------------------------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
+
+

@@ -22,20 +22,22 @@
           <li><a href="#features">Features</a></li>
           <li><a href="#about">About</a></li>
           <li><a href="#contact">Contact</a></li>
-
           {% if session.get('username') %}
-          <!-- User sudah login -->
-          <li><a href="#">{{ session['username'] }}</a></li>
-          <li><a href="{{ url_for('logout') }}">Logout</a></li>
-
+          <li><a href="#" id="userBtn">{{ session['username'] }}</a></li>
           {% else %}
-          <!-- User belum login -->
           <li><a href="{{ url_for('login') }}">Login</a></li>
           <li><a href="{{ url_for('signup') }}">SignUp</a></li>
           {% endif %}
         </ul>
       </nav>
     </header>
+      <div id="userPopup" class="user-popup hidden">
+        <p><strong>Name:</strong> <span id="popupFullname"></span></p>
+        <p><strong>Email:</strong> <span id="popupEmail"></span></p>
+        <p><strong>Joined:</strong> <span id="popupJoined"></span></p>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+      </div>
+      <script src="{{ url_for('static', filename='user_popup.js') }}"></script>
 
     <section id="home" class="hero">
       <div class="hero-content">
