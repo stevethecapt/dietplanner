@@ -27,6 +27,16 @@
 
     <section class="dashboard-section">
       <div class="dashboard-card">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for category, msg in messages %}
+                <div class="flash {{ category }}">{{ msg }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
         <h2>Rekomendasi Diet & Olahraga</h2>
 
         <form action="{{ url_for('dietplanner') }}" method="POST" class="diet-form">
