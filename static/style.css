@@ -153,7 +153,7 @@ header {
   top: 0;
   z-index: 100;
   padding: 0.6rem 1rem; /* DIPERKECIL untuk kesan header lebih tipis */
-  border-bottom: 1px solid rgba(0,0,0,0.08); /* garis tipis biar rapi */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08); /* garis tipis biar rapi */
 }
 
 nav {
@@ -212,7 +212,6 @@ nav ul li a:hover {
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
-
 
 .hero-content {
   flex: 1;
@@ -352,7 +351,6 @@ footer {
   margin-bottom: 0.6rem; /* DIPERKECIL */
 }
 
-<<<<<<< HEAD
 .form-group label {
   font-weight: 600;
   color: #333;
@@ -420,13 +418,25 @@ hr {
 
 /* ANIMATIONS */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .compare-card {
@@ -483,7 +493,7 @@ hr {
   backdrop-filter: blur(10px);
   padding: 15px;
   border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
   z-index: 9999;
   width: 220px;
   font-size: 14px;
@@ -509,11 +519,9 @@ hr {
 .logout-btn:hover {
   background: #d93636;
 }
-
-=======
 /* Modal styles for unauthenticated Get Started */
 .modal {
-  display: none;
+  display: none; /* controlled by JS */
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -559,4 +567,3 @@ hr {
 .btn-primary {
   border: none;
 }
->>>>>>> 1bc8b51563440db62fbc62f45cb0ebf532012af7

@@ -40,13 +40,13 @@
         </ul>
       </nav>
     </header>
-      <div id="userPopup" class="user-popup hidden">
-        <p><strong>Name:</strong> <span id="popupFullname"></span></p>
-        <p><strong>Email:</strong> <span id="popupEmail"></span></p>
-        <p><strong>Joined:</strong> <span id="popupJoined"></span></p>
-        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-      </div>
-      <script src="{{ url_for('static', filename='user_popup.js') }}"></script>
+    <div id="userPopup" class="user-popup hidden">
+      <p><strong>Name:</strong> <span id="popupFullname"></span></p>
+      <p><strong>Email:</strong> <span id="popupEmail"></span></p>
+      <p><strong>Joined:</strong> <span id="popupJoined"></span></p>
+      <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
+    <script src="{{ url_for('static', filename='user_popup.js') }}"></script>
 
     <section id="home" class="hero">
       <div class="hero-content">
@@ -94,9 +94,14 @@
     <footer>
       <p>&copy; 2023 DietPlanner. All rights reserved.</p>
     </footer>
-    <!-- Modal for unauthenticated Get Started -->
-    <div id="auth-modal" class="modal" aria-hidden="true">
-      <div class="modal-backdrop" id="modal-backdrop"></div>
+    <!-- Auth modal (hidden by default). login URL stored in data-login-url -->
+    <div
+      id="auth-modal"
+      class="modal hidden"
+      data-login-url="{{ url_for('login') }}"
+      aria-hidden="true"
+    >
+      <div class="modal-backdrop"></div>
       <div
         class="modal-panel"
         role="dialog"
@@ -119,35 +124,41 @@
       (function () {
         var btn = document.getElementById("get-started-btn");
         var modal = document.getElementById("auth-modal");
-        var backdrop = document.getElementById("modal-backdrop");
+        if (!btn || !modal) return;
         var ok = document.getElementById("modal-ok");
         var cancel = document.getElementById("modal-cancel");
-        if (btn && modal) {
-          function show() {
-            modal.setAttribute("aria-hidden", "false");
-            modal.style.display = "block";
-            document.body.style.overflow = "hidden";
-          }
-          function hide() {
-            modal.setAttribute("aria-hidden", "true");
-            modal.style.display = "none";
-            document.body.style.overflow = "auto";
-          }
-          btn.addEventListener("click", function (e) {
-            e.preventDefault();
-            show();
-          });
-          cancel.addEventListener("click", function (e) {
-            e.preventDefault();
-            hide();
-          });
-          backdrop.addEventListener("click", function () {
-            hide();
-          });
-          ok.addEventListener("click", function () {
-            window.location = "{{ url_for('login') }}";
-          });
+        var backdrop = modal.querySelector(".modal-backdrop");
+        function show() {
+          modal.classList.remove("hidden");
+          modal.style.display = "block";
+          modal.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
         }
+        function hide() {
+          modal.classList.add("hidden");
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "auto";
+        }
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          show();
+        });
+        cancel.addEventListener("click", function (e) {
+          e.preventDefault();
+          hide();
+        });
+        backdrop.addEventListener("click", function () {
+          hide();
+        });
+        ok.addEventListener("click", function () {
+          var url = modal.getAttribute("data-login-url") || "/login";
+          window.location.href = url;
+        });
+        // close on Esc
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") hide();
+        });
       })();
     </script>
   </body>
