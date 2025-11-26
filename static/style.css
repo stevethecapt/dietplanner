@@ -484,6 +484,30 @@ hr {
   word-wrap: break-word; /* supaya teks panjang wrap */
 }
 
+/* Compare-card color variants */
+.compare-card {
+  padding: 1rem;
+  border-radius: 12px;
+}
+.compare-card.gain {
+  background: linear-gradient(135deg, #ffe6cc, #ffd1a6);
+  color: #5a3300;
+}
+.compare-card.maintain {
+  background: linear-gradient(135deg, #e6fff2, #ccf7e6);
+  color: #0b5a3c;
+}
+.compare-card.lose {
+  background: linear-gradient(135deg, #ffe6e6, #ffc9c9);
+  color: #5a0b0b;
+}
+.compare-card .label {
+  font-weight: 700;
+}
+.compare-card .value {
+  font-weight: 600;
+}
+
 /* USER POPUP */
 .user-popup {
   position: absolute;

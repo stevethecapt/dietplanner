@@ -109,9 +109,9 @@
             <label for="goal">Apa target Anda?</label>
             <select id="goal" name="goal" required>
               <option value="">Pilih</option>
-              <option value="gain" {% if request.form.goal == 'gain' %}selected{% endif %}>Menaikkan berat badan</option>
-              <option value="maintain" {% if request.form.goal == 'maintain' %}selected{% endif %}>Mempertahankan berat badan</option>
-              <option value="loss" {% if request.form.goal == 'loss' %}selected{% endif %}>Menurunkan berat badan</option>
+              <option value="gain_weight" {% if request.form.goal == 'gain_weight' or request.form.goal == 'gain' %}selected{% endif %} {% if result.bmi_status in ['Sangat Gemuk','Obesitas'] %}disabled{% endif %}>Menaikkan berat badan</option>
+              <option value="maintain_weight" {% if request.form.goal == 'maintain_weight' or request.form.goal == 'maintain' %}selected{% endif %}>Mempertahankan berat badan</option>
+              <option value="lose_weight" {% if request.form.goal == 'lose_weight' or request.form.goal == 'loss' %}selected{% endif %}>Menurunkan berat badan</option>
             </select>
           </div>
         </form>
@@ -120,17 +120,18 @@
           document.addEventListener("DOMContentLoaded", function () {
             const status = "{{ result.bmi_status }}";
 
-            const gain = document.querySelector("option[value='gain']");
-            const maintain = document.querySelector("option[value='maintain']");
-            const loss = document.querySelector("option[value='loss']");
+            const gain = document.querySelector("option[value='gain_weight']") || document.querySelector("option[value='gain']");
+            const maintain = document.querySelector("option[value='maintain_weight']") || document.querySelector("option[value='maintain']");
+            const loss = document.querySelector("option[value='lose_weight']") || document.querySelector("option[value='loss']");
 
             if (status === "Sangat Kurus" || status === "Kurus") {
-              loss.disabled = true;
-              maintain.disabled = true;
+              if (loss) loss.disabled = true;
+              if (maintain) maintain.disabled = true;
             }
 
-            if (status === "Obesitas") {
-              gain.disabled = true;
+            // Disable gain option when BMI is very high
+            if (status === "Sangat Gemuk" || status === "Obesitas") {
+              if (gain) gain.disabled = true;
             }
           });
 
@@ -143,9 +144,17 @@
       {% endif %}
 
       <!-- CARD PERBANDINGAN GOAL -->
-      {% if result.goal_calories != result.deposit_calories %}
-      <div class="dashboard-card2 compare-card">
-        <h3>Rekomendasi Berdasarkan Target Anda</h3>
+  {% if result and request.form.get('goal') %}
+      <div class="dashboard-card2 compare-card {{ result.goal_key if result.goal_key else '' }}">
+        <h3>
+          {% if result.goal_key == 'gain' %}
+            Rekomendasi untuk Menaikkan Berat Badan
+          {% elif result.goal_key == 'maintain' %}
+            Rekomendasi untuk Mempertahankan Berat Badan
+          {% else %}
+            Rekomendasi untuk Menurunkan Berat Badan
+          {% endif %}
+        </h3>
         <div class="compare-item">
           <span class="label">Kalori:</span>
           <span class="value">{{ result.goal_calories }} kcal</span>

@@ -195,18 +195,30 @@ def dietplanner():
         factor = activity_factors.get(activity, 1.2)
         daily_calories = int(bmr * factor)
 
-        # Rekomendasi otomatis berdasarkan BMI
+        # Rekomendasi otomatis berdasarkan BMI (Bahasa Indonesia)
         if bmi_status in ["Sangat Kurus", "Kurus"]:
-            system_recommendation = "Kekurangan gizi. Direkomendasikan menaikkan berat badan."
+            system_recommendation = "Kekurangan gizi. Direkomendasikan menaikkan berat badan dengan asupan kalori lebih tinggi dan latihan penguatan otot."
             deposit_calories = daily_calories + 400
-        elif bmi_status == "Normal":
-            system_recommendation = "Berat badan ideal."
+            # for underweight, suggest calorie-dense healthy foods
+            food = "Susu penuh lemak, telur, daging tanpa lemak, roti gandum, selai kacang, alpukat, pisang"
+            exercise = "Latihan kekuatan ringan, peningkatan frekuensi makan: 3-4x/ hari"
+        elif bmi_status in ["Normal", "Ideal"]:
+            # Provide maintenance recommendations in Indonesian
+            system_recommendation = (
+                "Berat badan dalam kisaran normal. Untuk mempertahankan berat badan, "
+                "pertahankan asupan kalori seimbang, porsi terkontrol, dan olahraga teratur."
+            )
             deposit_calories = daily_calories
+            # maintenance suggestions
+            food = "Porsi seimbang: karbohidrat kompleks, sumber protein, sayur, buah; batasi gula dan gorengan."
+            exercise = "Olahraga teratur 3–5x/minggu (cardio ringan + kekuatan ringan)."
         elif bmi_status in ["Overweight", "Obesitas"]:
-            system_recommendation = "Kelebihan berat badan. Direkomendasikan program diet dan olahraga."
+            system_recommendation = "Kelebihan berat badan. Direkomendasikan program diet seimbang dan peningkatan aktivitas fisik."
             deposit_calories = daily_calories - 400
+            food = "Sayur, ikan, dada ayam tanpa kulit, oatmeal, apel, almond, yogurt rendah lemak"
+            exercise = "Cardio teratur, latihan kekuatan, pengurangan asupan kalori." 
         else:
-            system_recommendation = "Perlu konsultasi lebih detail."
+            system_recommendation = "Perlu konsultasi lebih detail dengan profesional kesehatan."
             deposit_calories = daily_calories
 
         # Rekomendasi olahraga
@@ -240,22 +252,23 @@ def dietplanner():
         goal_exercise = exercise
         goal_protein = protein_grams
 
-        if goal == "gain":
+        # Match form option values: 'gain_weight', 'maintain_weight', 'lose_weight'
+        if goal in ("gain_weight", "gain"):
             goal_calories = deposit_calories + 300
-            goal_food = "Kalori tinggi sehat: daging, susu full cream, kacang, alpukat, pisang, nasi merah."
-            goal_exercise = "Latihan angkat beban 3–4x/minggu + makan tinggi protein."
+            goal_food = "Kalori tinggi sehat: daging, susu penuh lemak, kacang-kacangan, alpukat, pisang, nasi merah."
+            goal_exercise = "Latihan angkat beban 3–4x/minggu dan fokus pada progresif overload."
             goal_protein = round(weight * 1.8, 1)
-        
-        elif goal == "maintain":
+
+        elif goal in ("maintain_weight", "maintain"):
             goal_calories = deposit_calories
-            goal_food = "Porsi stabil: protein sedang, karbo kompleks, serat, sayur, buah."
-            goal_exercise = "Olahraga ringan–sedang 3–5x/minggu."
+            goal_food = "Porsi seimbang: protein sedang, karbohidrat kompleks, banyak sayur dan buah, batasi gula olahan."
+            goal_exercise = "Olahraga teratur 3–5x/minggu (kombinasi cardio & kekuatan)."
             goal_protein = protein_grams
 
-        elif goal == "loss":
+        elif goal in ("lose_weight", "loss"):
             goal_calories = deposit_calories - 300
             goal_food = "Defisit kalori: dada ayam, ikan, brokoli, oatmeal, apel, yogurt rendah lemak."
-            goal_exercise = "Cardio + latihan ringan 5x/minggu."
+            goal_exercise = "Cardio + latihan kekuatan 4–5x/minggu dengan defisit kalori moderat."
             goal_protein = round(weight * 1.2, 1)
 
         result = {
@@ -272,6 +285,13 @@ def dietplanner():
             'goal_exercise': goal_exercise,
             'goal_protein': goal_protein
         }
+        # Normalized goal key for templating (gain / maintain / lose)
+        if goal in ('gain_weight', 'gain'):
+            result['goal_key'] = 'gain'
+        elif goal in ('maintain_weight', 'maintain'):
+            result['goal_key'] = 'maintain'
+        else:
+            result['goal_key'] = 'lose'
 
     return render_template("dietplanner.html", result=result)
 
