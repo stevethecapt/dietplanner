@@ -132,6 +132,7 @@
             // Disable gain option when BMI is very high
             if (status === "Sangat Gemuk" || status === "Obesitas") {
               if (gain) gain.disabled = true;
+              if (maintain) maintain.disabled = true;              
             }
           });
 
