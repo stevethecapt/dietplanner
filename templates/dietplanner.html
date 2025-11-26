@@ -173,7 +173,25 @@
           <span class="value">{{ result.goal_exercise }}</span>
         </div>
       </div>
+      <div class="ai-chatbot-container">
+        <h3>Ingin Saran yang lebih spesifik?</h3>
+        <button class="btn-primary" onclick="openChatbot()">
+          <img src="{{ url_for('static', filename='gemini.png') }}" alt="Gemini AI" class="btn-logo">
+          Tanya AI Chatbot
+        </button>
+      </div>
       {% endif %}
     </section>
+    <div id="chatbotPanel" class="chatbot-panel hidden">
+      <div class="chatbot-header">
+        <button class="close-btn" onclick="closeChatbot()">×</button>
+      </div>
+      <div id="chatMessages" class="chatbot-messages"></div>
+      <div class="chatbot-input">
+        <input type="text" id="chatInput" placeholder="Tulis pesan..." />
+        <button onclick="sendMessage()">Kirim</button>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
   </body>
 </html>
