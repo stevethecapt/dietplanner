@@ -1,7 +1,3 @@
-
-
-# --- Import yang dibutuhkan ---
-# --- Import yang dibutuhkan ---
 import os
 import re
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
@@ -87,7 +83,7 @@ def api_chatbot():
 # Konfigurasi MySQL
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''  # jika MySQL pakai password, isi di sini
+app.config['MYSQL_PASSWORD'] = '' 
 app.config['MYSQL_DB'] = 'dietplanner'
 
 mysql = MySQL(app)
@@ -664,6 +660,50 @@ def delete_food_log(log_id):
             cursor.close()
         except Exception:
             pass
+    return redirect(url_for('food_log'))
+
+
+# ROUTE: Update food log entry
+@app.route('/update_food_log/<int:log_id>', methods=['POST'])
+def update_food_log(log_id):
+    if not session.get('loggedin'):
+        flash('Silakan login untuk mengubah log makanan.', 'error')
+        return redirect(url_for('login'))
+
+    food_name = request.form.get('food_name', '').strip()
+    calories = request.form.get('calories', '').strip()
+    log_date = request.form.get('log_date', '').strip()
+
+    if not food_name or not calories or not log_date:
+        flash('Semua field wajib diisi untuk memperbarui log.', 'error')
+        return redirect(url_for('food_log'))
+
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            'UPDATE food_log SET food_name = %s, calories = %s, log_date = %s WHERE id = %s AND user_id = %s',
+            (food_name, int(calories), log_date, log_id, session.get('id'))
+        )
+        mysql.connection.commit()
+        # cursor.rowcount tidak selalu tersedia tergantung driver, cek dengan safety
+        try:
+            updated = cursor.rowcount
+        except Exception:
+            updated = 1
+
+        if updated:
+            flash('Log makanan berhasil diperbarui.', 'success')
+        else:
+            flash('Tidak ditemukan log atau Anda tidak punya izin untuk mengubahnya.', 'error')
+    except Exception as e:
+        app.logger.error('Gagal memperbarui food log: %s', e)
+        flash('Gagal memperbarui log makanan.', 'error')
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
     return redirect(url_for('food_log'))
 # ---------------------------------------------------------
 @app.route('/history')

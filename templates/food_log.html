@@ -61,23 +61,14 @@
           </thead>
           <tbody>
             {% for log in logs %}
-            <tr>
+            <tr data-id="{{ log.id }}" data-food="{{ log.food_name }}" data-calories="{{ log.calories }}" data-date="{{ log.log_date }}">
               <td>{{ log.log_date }}</td>
               <td>{{ log.food_name }}</td>
               <td>{{ log.calories }}</td>
               <td>
-                <form
-                  method="POST"
-                  action="{{ url_for('delete_food_log', log_id=log.id) }}"
-                  style="display: inline"
-                >
-                  <button
-                    type="submit"
-                    class="btn-danger small"
-                    onclick="return confirm('Hapus log makanan ini?')"
-                  >
-                    🗑️ Hapus
-                  </button>
+                <button type="button" class="btn-secondary small" onclick="openEditModal(this)">✏️ Edit</button>
+                <form method="POST" action="{{ url_for('delete_food_log', log_id=log.id) }}" style="display: inline">
+                  <button type="submit" class="btn-danger small" onclick="return confirm('Hapus log makanan ini?')">🗑️ Hapus</button>
                 </form>
               </td>
             </tr>
@@ -90,6 +81,66 @@
         <p>Belum ada log makanan. Tambahkan makanan harian Anda di atas.</p>
       </div>
       {% endif %}
+    
+      <!-- Edit modal (hidden by default) -->
+      <div id="editModal" class="modal" aria-hidden="true">
+        <div class="modal-backdrop" onclick="closeEditModal()"></div>
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+          <h3 id="editModalTitle">Edit Log Makanan</h3>
+          <form id="editForm" method="POST" action="">
+            <div class="form-group">
+              <label for="edit_food_name">Nama Makanan</label>
+              <input type="text" name="food_name" id="edit_food_name" required maxlength="100" />
+            </div>
+            <div class="form-group">
+              <label for="edit_calories">Kalori</label>
+              <input type="number" name="calories" id="edit_calories" required min="0" />
+            </div>
+            <div class="form-group">
+              <label for="edit_log_date">Tanggal Konsumsi</label>
+              <input type="date" name="log_date" id="edit_log_date" required />
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn-secondary" onclick="closeEditModal()">Batal</button>
+              <button type="submit" class="btn-primary">Simpan Perubahan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <script>
+        function openEditModal(btn) {
+          var row = btn.closest('tr');
+          var id = row.dataset.id;
+          var food = row.dataset.food || '';
+          var calories = row.dataset.calories || '';
+          var date = row.dataset.date || '';
+
+          document.getElementById('edit_food_name').value = food;
+          document.getElementById('edit_calories').value = calories;
+          document.getElementById('edit_log_date').value = date;
+
+          var form = document.getElementById('editForm');
+          form.action = '/update_food_log/' + id;
+
+          var modal = document.getElementById('editModal');
+          modal.style.display = 'block';
+          modal.classList.remove('hidden');
+          modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeEditModal() {
+          var modal = document.getElementById('editModal');
+          modal.style.display = 'none';
+          modal.classList.add('hidden');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+
+        // close modal on Escape
+        document.addEventListener('keydown', function(e){
+          if (e.key === 'Escape') closeEditModal();
+        });
+      </script>
     </main>
   </body>
 </html>
