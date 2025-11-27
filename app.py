@@ -1,13 +1,88 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+
+
+# --- Import yang dibutuhkan ---
+# --- Import yang dibutuhkan ---
+import os
+import re
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_mysqldb import MySQL
 import MySQLdb
-import MySQLdb.cursors
-import re
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.exceptions import HTTPException
+from dotenv import load_dotenv
 
-# Inisialisasi Aplikasi Flask
+# Gemini API (google-generativeai)
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+# --- Inisialisasi Flask ---
 app = Flask(__name__)
 app.secret_key = 'dietplanner-secret-key'
+
+# Load .env for Gemini API key
+load_dotenv()
+# Gemini API key setup
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "ISI_API_KEY_GEMINI")
+if genai and GEMINI_API_KEY and GEMINI_API_KEY != "ISI_API_KEY_GEMINI":
+    genai.configure(api_key=GEMINI_API_KEY)
+
+# Endpoint untuk menampilkan daftar model Gemini yang tersedia
+@app.route('/api/list_models', methods=['GET'])
+def list_gemini_models():
+    if not genai:
+        return jsonify({'error': 'google-generativeai library not installed'}), 500
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "ISI_API_KEY_GEMINI":
+        return jsonify({'error': 'Gemini API key not set'}), 500
+    try:
+        models = []
+        for m in genai.list_models():
+            models.append({
+                'name': getattr(m, 'name', str(m)),
+                'description': getattr(m, 'description', ''),
+                'supported_methods': getattr(m, 'supported_generation_methods', [])
+            })
+        return jsonify({'models': models})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+app = Flask(__name__)
+app.secret_key = 'dietplanner-secret-key'
+
+# Load .env for Gemini API key
+load_dotenv()
+# Gemini API key setup
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "ISI_API_KEY_GEMINI")
+if genai and GEMINI_API_KEY and GEMINI_API_KEY != "ISI_API_KEY_GEMINI":
+    genai.configure(api_key=GEMINI_API_KEY)
+# ---------------------------------------------------------
+# ROUTE: Gemini Chatbot API
+# ---------------------------------------------------------
+@app.route('/api/chatbot', methods=['POST'])
+def api_chatbot():
+    if not genai:
+        return jsonify({'error': 'google-generativeai library not installed'}), 500
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "ISI_API_KEY_GEMINI":
+        return jsonify({'error': 'Gemini API key not set'}), 500
+    data = request.get_json()
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({'error': 'Pertanyaan kosong'}), 400
+    # Restrict chatbot to diet planner topics only
+    system_instruction = (
+        "Anda adalah asisten diet planner. Jawab hanya pertanyaan seputar diet, nutrisi, pola makan sehat, fitur aplikasi dietplanner, dan kesehatan terkait makanan. "
+        "Jika pertanyaan di luar topik diet, nutrisi, atau aplikasi dietplanner, jawab dengan sopan: 'Maaf, saya hanya dapat membantu pertanyaan seputar diet, nutrisi, dan fitur aplikasi dietplanner.'"
+    )
+    full_prompt = f"{system_instruction}\n\nPertanyaan pengguna: {question}"
+    try:
+        # Gunakan model Gemini versi terbaru yang valid
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        response = model.generate_content(full_prompt)
+        answer = response.text if hasattr(response, 'text') else str(response)
+        return jsonify({'answer': answer})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Konfigurasi MySQL
 app.config['MYSQL_HOST'] = 'localhost'
@@ -16,6 +91,109 @@ app.config['MYSQL_PASSWORD'] = ''  # jika MySQL pakai password, isi di sini
 app.config['MYSQL_DB'] = 'dietplanner'
 
 mysql = MySQL(app)
+
+# Pastikan tabel progress_history ada
+def create_progress_table():
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS progress_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                bmi FLOAT,
+                daily_calories INT,
+                goal_key VARCHAR(32),
+                goal_calories INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+            """
+        )
+        mysql.connection.commit()
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+# Pastikan tabel food_log ada
+def create_foodlog_table():
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS food_log (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                food_name VARCHAR(100),
+                calories INT,
+                log_date DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+            """
+        )
+        mysql.connection.commit()
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+# Pastikan tabel users ada (jika belum dibuat oleh migrasi lain)
+def create_users_table():
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                fullname VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                username VARCHAR(100) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB;
+            """
+        )
+        mysql.connection.commit()
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+
+# -------------------------
+# Validation helpers
+# -------------------------
+def is_valid_email(email: str) -> bool:
+    if not email:
+        return False
+    return re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email) is not None
+
+def safe_int(value, default=0):
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+def safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except Exception:
+        return default
+# Panggil pembuatan tabel sekali saat aplikasi start (jika koneksi tersedia)
+with app.app_context():
+    try:
+        # Ensure users table exists before progress_history which references it
+        create_users_table()
+        create_progress_table()
+        create_foodlog_table()
+    except Exception:
+        # jika DB belum siap atau tidak terhubung saat import, lewati - akan dibuat saat runtime
+        pass
 
 # ---------------------------------------------------------
 # ROUTE: Home Page
@@ -35,14 +213,21 @@ def login():
         login_input = request.form.get('email')  # bisa berisi email atau username
         password_input = request.form.get('password')
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        if not login_input or not password_input:
+            flash('Email/username dan password wajib diisi.', 'error')
+            return render_template('login.html')
+
         try:
-            # Ambil user berdasarkan email atau username
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute(
                 'SELECT * FROM users WHERE email = %s OR username = %s',
                 (login_input, login_input)
             )
             user = cursor.fetchone()
+        except MySQLdb.Error as e:
+            app.logger.error('DB error on login: %s', e)
+            flash('Terjadi kesalahan server. Coba lagi nanti.', 'error')
+            user = None
         finally:
             try:
                 cursor.close()
@@ -75,8 +260,19 @@ def signup():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm-password')
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        # Basic validation
+        if not fullname or not email or not username or not password:
+            flash('Semua field wajib diisi.', 'error')
+            return render_template('signup.html')
+        if not is_valid_email(email):
+            flash('Format email tidak valid.', 'error')
+            return render_template('signup.html')
+        if password != confirm_password:
+            flash('Password dan konfirmasi tidak sama.', 'error')
+            return render_template('signup.html')
+
         try:
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             # Cek apakah email atau username sudah terdaftar
             cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
             account_email = cursor.fetchone()
@@ -115,6 +311,9 @@ def signup():
                         flash('Gagal: Username sudah terdaftar (konkurensi).', 'error')
                     else:
                         flash('Gagal registrasi: data sudah ada.', 'error')
+                except MySQLdb.Error as e:
+                    app.logger.error('DB error on signup insert: %s', e)
+                    flash('Terjadi kesalahan pada database. Coba lagi nanti.', 'error')
                 except Exception as e:
                     app.logger.error('Error saat mendaftar user: %s', e)
                     flash('Terjadi kesalahan saat registrasi. Coba lagi nanti.', 'error')
@@ -134,6 +333,9 @@ def signup():
 def reset_password():
     if request.method == 'POST':
         username = request.form.get('username')
+        if not username:
+            flash('Masukkan username atau email untuk reset password.', 'error')
+            return render_template('resetpassword.html')
         flash(f'Instruksi reset password telah dikirim ke {username}. (simulasi)', 'info')
         return redirect(url_for('login'))
     return render_template('resetpassword.html')
@@ -151,12 +353,17 @@ def dietplanner():
     result = None
     if request.method == 'POST':
         # Ambil data dari form
-        weight = float(request.form.get('weight', 0))
-        height = float(request.form.get('height', 0))
-        age = int(request.form.get('age', 0))
+        weight = safe_float(request.form.get('weight'))
+        height = safe_float(request.form.get('height'))
+        age = safe_int(request.form.get('age'))
         gender = request.form.get('gender')
         activity = request.form.get('activity')
         goal = request.form.get('goal')
+
+        # Basic input validation
+        if weight <= 0 or height <= 0 or age <= 0:
+            flash('Masukkan nilai berat, tinggi, dan umur yang valid.', 'error')
+            return render_template('dietplanner.html', result=None)
 
         # Hitung BMI
         height_m = height / 100
@@ -293,6 +500,26 @@ def dietplanner():
         else:
             result['goal_key'] = 'lose'
 
+        # Simpan ke tabel history jika user login
+        try:
+            if session.get('id'):
+                cursor = mysql.connection.cursor()
+                try:
+                    cursor.execute(
+                        "INSERT INTO progress_history (user_id, bmi, daily_calories, goal_key, goal_calories) VALUES (%s, %s, %s, %s, %s)",
+                        (session.get('id'), bmi, daily_calories, result.get('goal_key'), int(result.get('goal_calories')))
+                    )
+                    mysql.connection.commit()
+                finally:
+                    try:
+                        cursor.close()
+                    except Exception:
+                        pass
+        except Exception as e:
+            app.logger.error('Gagal menyimpan history: %s', e)
+            # do not expose DB errors to users
+            flash('Gagal menyimpan riwayat. Lanjutkan tanpa menyimpan.', 'warning')
+
     return render_template("dietplanner.html", result=result)
 
 
@@ -314,19 +541,228 @@ def user_info():
         return {"error": "Not logged in"}, 403
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("""
-        SELECT fullname, email, created_at
-        FROM users
-        WHERE username = %s
-    """, (session['username'],))
-    
-    data = cursor.fetchone()
-    return data
+    try:
+        cursor.execute("""
+            SELECT id, fullname, email, created_at
+            FROM users
+            WHERE username = %s
+        """, (session['username'],))
+        user = cursor.fetchone()
+
+        if not user:
+            return {"error": "User not found"}, 404
+
+        # try to fetch latest progress for this user
+        cursor.execute(
+            "SELECT bmi, daily_calories, goal_key, goal_calories, created_at "
+            "FROM progress_history WHERE user_id = %s ORDER BY created_at DESC LIMIT 1",
+            (user['id'],),
+        )
+        latest = cursor.fetchone()
+
+        data = {
+            'fullname': user.get('fullname'),
+            'email': user.get('email'),
+            'created_at': user.get('created_at')
+        }
+
+        if latest:
+            data.update({
+                'bmi': latest.get('bmi'),
+                'daily_calories': latest.get('daily_calories'),
+                'goal_calories': latest.get('goal_calories'),
+                'goal_key': latest.get('goal_key'),
+                'latest_at': latest.get('created_at')
+            })
+
+            # compute a simple progress percent (how close daily_calories is to goal_calories)
+            try:
+                gc = float(latest.get('goal_calories') or 0)
+                dc = float(latest.get('daily_calories') or 0)
+                if gc > 0 and dc > 0:
+                    ratio = min(dc, gc) / max(dc, gc)
+                    pct = int(ratio * 100)
+                    data['progress_percent'] = pct
+                else:
+                    data['progress_percent'] = None
+            except Exception:
+                data['progress_percent'] = None
+
+        return data
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------
+# ROUTE: History (user-specific)
+@app.route('/food_log', methods=['GET', 'POST'])
+def food_log():
+    if not session.get('loggedin'):
+        flash('Silakan login untuk mengakses food log.', 'error')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        food_name = request.form.get('food_name', '').strip()
+        calories = request.form.get('calories', '').strip()
+        log_date = request.form.get('log_date', '').strip()
+        if not food_name or not calories or not log_date:
+            flash('Semua field wajib diisi.', 'error')
+        else:
+            try:
+                cursor = mysql.connection.cursor()
+                cursor.execute(
+                    "INSERT INTO food_log (user_id, food_name, calories, log_date) VALUES (%s, %s, %s, %s)",
+                    (session.get('id'), food_name, int(calories), log_date)
+                )
+                mysql.connection.commit()
+                flash('Log makanan berhasil disimpan.', 'success')
+            except Exception as e:
+                app.logger.error('Gagal simpan food log: %s', e)
+                flash('Gagal menyimpan log makanan.', 'error')
+            finally:
+                try:
+                    cursor.close()
+                except Exception:
+                    pass
+        return redirect(url_for('food_log'))
+    # GET: tampilkan log makanan user
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT id, food_name, calories, log_date FROM food_log WHERE user_id = %s ORDER BY log_date DESC, id DESC LIMIT 100",
+            (session.get('id'),)
+        )
+        logs = cursor.fetchall()
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+    return render_template('food_log.html', logs=logs)
+
+# ROUTE: Delete food log entry
+@app.route('/delete_food_log/<int:log_id>', methods=['POST'])
+def delete_food_log(log_id):
+    if not session.get('loggedin'):
+        flash('Silakan login untuk menghapus log makanan.', 'error')
+        return redirect(url_for('login'))
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            'DELETE FROM food_log WHERE id = %s AND user_id = %s',
+            (log_id, session.get('id'))
+        )
+        mysql.connection.commit()
+        flash('Log makanan berhasil dihapus.', 'success')
+    except Exception as e:
+        app.logger.error('Gagal hapus food log: %s', e)
+        flash('Gagal menghapus log makanan.', 'error')
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+    return redirect(url_for('food_log'))
+# ---------------------------------------------------------
+@app.route('/history')
+def history():
+    if not session.get('loggedin'):
+        flash('Silakan login untuk melihat riwayat Anda.', 'error')
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        cursor.execute(
+            'SELECT id, bmi, daily_calories, goal_key, goal_calories, created_at FROM progress_history WHERE user_id = %s ORDER BY created_at DESC LIMIT 200',
+            (session.get('id'),)
+        )
+        rows = cursor.fetchall()
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+    # enhance rows with human-friendly label and progress percent
+    for r in rows:
+        key = r.get('goal_key')
+        if key == 'gain':
+            r['goal_label'] = 'Menaikkan'
+        elif key == 'maintain':
+            r['goal_label'] = 'Mempertahankan'
+        elif key == 'lose':
+            r['goal_label'] = 'Menurunkan'
+        else:
+            r['goal_label'] = key or ''
+
+        try:
+            gc = float(r.get('goal_calories') or 0)
+            dc = float(r.get('daily_calories') or 0)
+            if gc > 0 and dc > 0:
+                ratio = min(dc, gc) / max(dc, gc)
+                r['progress_percent'] = int(ratio * 100)
+            else:
+                r['progress_percent'] = None
+        except Exception:
+            r['progress_percent'] = None
+
+    return render_template('history.html', rows=rows)
+
+# ROUTE: Delete history entry
+@app.route('/delete_history/<int:history_id>', methods=['POST'])
+def delete_history(history_id):
+    if not session.get('loggedin'):
+        flash('Silakan login untuk menghapus riwayat.', 'error')
+        return redirect(url_for('login'))
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            'DELETE FROM progress_history WHERE id = %s AND user_id = %s',
+            (history_id, session.get('id'))
+        )
+        mysql.connection.commit()
+        flash('Riwayat berhasil dihapus.', 'success')
+    except Exception as e:
+        app.logger.error('Gagal hapus riwayat: %s', e)
+        flash('Gagal menghapus riwayat.', 'error')
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+    return redirect(url_for('history'))
 
 
 # ---------------------------------------------------------
 # RUN SERVER
+
+# Error demo route for testing error handling
+@app.route('/error-demo')
+def error_demo():
+    # This will trigger a 500 error for demonstration
+    raise Exception('Contoh error: error handling berhasil!')
 # ---------------------------------------------------------
+
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('error.html', code=404, title='Halaman Tidak Ditemukan', message='Halaman yang Anda minta tidak ditemukan.'), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    app.logger.error('Internal server error: %s', e)
+    return render_template('error.html', code=500, title='Kesalahan Server', message='Terjadi kesalahan pada server. Coba lagi nanti.'), 500
+
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    # Generic handler for HTTPExceptions
+    return render_template('error.html', code=e.code or 500, title=e.name, message=e.description), e.code or 500
+
 if __name__ == '__main__':
     app.run(debug=True)
 

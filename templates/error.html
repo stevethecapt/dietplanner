@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Error - DietPlanner</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <main class="container" style="margin-top: 120px; padding: 1rem">
+      <h1>{{ code }} — {{ title }}</h1>
+      <p>{{ message }}</p>
+      <p>
+        <a href="{{ url_for('index') }}" class="btn-primary"
+          >Kembali ke Beranda</a
+        >
+      </p>
+    </main>
+  </body>
+</html>

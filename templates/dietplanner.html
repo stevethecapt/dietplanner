@@ -18,10 +18,28 @@
       </nav>
     </header>
     <div id="userPopup" class="user-popup hidden">
-      <p><strong>Name:</strong> <span id="popupFullname"></span></p>
-      <p><strong>Email:</strong> <span id="popupEmail"></span></p>
-      <p><strong>Joined:</strong> <span id="popupJoined"></span></p>
-      <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+      <div class="popup-header">
+        <div class="popup-avatar" id="popupAvatar">{{ session.get('username')[0]|upper if session.get('username') else '' }}</div>
+        <div class="popup-meta">
+          <div class="popup-name" id="popupFullname">&nbsp;</div>
+          <div class="popup-email" id="popupEmail">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="popup-stats">
+        <div class="stat-row"><span class="stat-label">BMI terakhir</span><span class="stat-value" id="popupBMI">-</span></div>
+        <div class="stat-row"><span class="stat-label">Target kalori</span><span class="stat-value" id="popupCalories">-</span></div>
+        <div class="stat-row"><span class="stat-label">Target</span><span class="stat-value" id="popupGoal">-</span></div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="popupProgressFill" style="width:0%"></div></div>
+          <div class="progress-text" id="popupProgressText">0%</div>
+        </div>
+      </div>
+
+      <div class="popup-footer">
+        <div class="popup-joined"><small>Bergabung: <span id="popupJoined">-</span></small></div>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+      </div>
     </div>
     <script src="{{ url_for('static', filename='user_popup.js') }}"></script>
 
@@ -143,6 +161,10 @@
 
       </div>
       {% endif %}
+      <!-- Tombol kembali ke menu utama (selalu tampil di bawah hasil) -->
+      <div style="width:100%; display:flex; justify-content:center; margin-top:14px;">
+        <a href="{{ url_for('index') }}" class="btn-primary" style="padding:8px 14px; border-radius:8px;">Kembali ke Menu Utama</a>
+      </div>
 
       <!-- CARD PERBANDINGAN GOAL -->
   {% if result and request.form.get('goal') %}
@@ -175,10 +197,10 @@
       </div>
       <div class="ai-chatbot-container">
         <h3>Ingin Saran yang lebih spesifik?</h3>
-        <button class="btn-primary" onclick="openChatbot()">
+        <button class="btn-primary chatbot-open-btn" onclick="openChatbot()" title="Tanya AI Chatbot">
           <img src="{{ url_for('static', filename='gemini.png') }}" alt="Gemini AI" class="btn-logo">
-          Tanya AI Chatbot
         </button>
+        <span class="chatbot-label">Tanya AI Chatbot</span>
       </div>
       {% endif %}
     </section>
@@ -188,8 +210,8 @@
       </div>
       <div id="chatMessages" class="chatbot-messages"></div>
       <div class="chatbot-input">
-        <input type="text" id="chatInput" placeholder="Tulis pesan..." />
-        <button onclick="sendMessage()">Kirim</button>
+  <input type="text" id="chatInput" placeholder="Tulis pesan..." autocomplete="off" />
+  <button id="chatSendBtn" onclick="sendMessage()">Kirim</button>
       </div>
     </div>
     <script src="{{ url_for('static', filename='chatbot.js') }}"></script>

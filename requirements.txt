@@ -1,1 +1,6 @@
-Flask-MySQLdb
+flask
+flask-mysqldb
+mysqlclient
+werkzeug
+python-dotenv
+google-generativeai

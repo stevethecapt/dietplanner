@@ -1,3 +1,51 @@
+/* History Table Card */
+.history-table-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+}
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+.history-table th,
+.history-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eaeaea;
+  text-align: center;
+}
+.history-table th {
+  background: #f5f7fa;
+  color: #0984e3;
+  font-weight: 600;
+}
+.history-table tr:last-child td {
+  border-bottom: none;
+}
+.history-table td {
+  background: #fff;
+}
+.history-table .btn-danger.small {
+  padding: 4px 10px;
+  font-size: 0.95em;
+  border-radius: 8px;
+  background: #ff4d4d;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.history-table .btn-danger.small:hover {
+  background: #d93636;
+}
+.empty-history {
+  text-align: center;
+  margin: 2rem 0;
+}
 /* Auth form containers */
 .login-container,
 .signup-container,
@@ -143,6 +191,15 @@ body {
   color: #333;
   background: linear-gradient(135deg, #2492e7, #9ac0e7);
   min-height: 100vh;
+}
+
+/* Center auth pages (login/signup/reset) accounting for fixed header */
+.auth-page {
+  min-height: calc(100vh - 80px); /* leave space for header */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 40px; /* small offset so it doesn't hide under header */
 }
 
 header {
@@ -511,20 +568,206 @@ hr {
 /* USER POPUP */
 .user-popup {
   position: absolute;
-  top: 70px; /* turunkan di bawah header */
-  right: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  top: 70px; /* fallback */
+  right: 20px; /* fallback */
   z-index: 9999;
-  width: 220px;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 14px 16px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 14px;
+  width: auto;
+  min-width: 280px; /* sedikit lebih besar */
+  max-width: min(360px, 90vw); /* jangan melebihi layar */
+  max-height: 72vh; /* batasi tinggi, beri scroll jika perlu */
+  overflow: auto;
+  transition: opacity 160ms ease, transform 160ms ease;
+  transform-origin: top right;
 }
 
-.hidden {
-  display: none;
+.user-popup.hidden {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  pointer-events: none;
+}
+
+.user-popup:not(.hidden) {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.user-popup-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-popup .avatar {
+  width: 64px; /* perbesar avatar */
+  height: 64px;
+  border-radius: 14px; /* subtle rounded square */
+  background: linear-gradient(135deg, #2f79f0, #66b0ff);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(47, 121, 240, 0.18);
+}
+
+.user-meta .user-name {
+  font-weight: 700;
+  color: #222;
+  font-size: 0.98rem;
+}
+
+.user-meta .user-email {
+  font-size: 0.82rem;
+  color: #666;
+}
+
+.user-popup-body {
+  margin-top: 8px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.06);
+  padding-top: 8px;
+}
+
+.user-popup-body-stats {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-popup-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-meta .user-name {
+  font-weight: 700;
+  color: #222;
+  font-size: 1rem;
+}
+
+.user-meta .user-email {
+  font-size: 0.86rem;
+  color: #666;
+}
+
+.user-popup-body {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.popup-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.popup-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2f79f0, #66b0ff);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.popup-meta .popup-name {
+  font-weight: 700;
+  color: #222;
+}
+.popup-meta .popup-email {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.popup-stats {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
+.stat-label {
+  font-weight: 600;
+  color: #444;
+  font-size: 0.9rem;
+}
+.stat-value {
+  font-weight: 700;
+  color: #111;
+}
+
+.progress-wrap {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2f79f0, #66b0ff);
+  width: 0%;
+  transition: width 350ms ease;
+}
+.progress-text {
+  font-size: 0.82rem;
+  color: #444;
+  min-width: 38px;
+  text-align: right;
+}
+
+.popup-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secondary.small,
+.btn-primary.small {
+  padding: 6px 10px;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.btn-secondary.small {
+  background: #f5f7fa;
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.btn-primary.small {
+  background: linear-gradient(90deg, #2f79f0, #66b0ff);
+  color: #fff;
+  border: none;
 }
 .logout-btn {
   display: block;
@@ -594,12 +837,12 @@ hr {
 /* Container tetap di bottom */
 .ai-chatbot-container {
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 24px;
+  right: 24px; /* pindah ke kanan */
+  transform: none;
   text-align: center;
   z-index: 9999;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 /* H3 dengan font-weight normal */
@@ -614,20 +857,23 @@ hr {
 .ai-chatbot-container .btn-primary {
   display: inline-flex;
   align-items: center;
-  gap: 8px; /* jarak antara logo dan teks */
-  background: linear-gradient(90deg, #b7ddff, #2f79f0);
+  justify-content: center;
+  gap: 10px; /* jarak antara logo dan teks */
+  background: linear-gradient(90deg, #2f79f0, #66b0ff);
   color: #fff;
-  padding: 10px 20px;
-  border-radius: 6px;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border-radius: 999px; /* circular */
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 /* Logo di tombol */
 .ai-chatbot-container .btn-logo {
-  width: 28px; /* sesuaikan ukuran logo */
-  height: 28px;
+  width: 30px; /* sesuaikan ukuran logo */
+  height: 30px;
 }
 
 /* Hover efek */
@@ -650,7 +896,7 @@ hr {
   flex-direction: column;
   transform: translateX(100%);
   transition: transform 0.3s ease-in-out;
-  box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
   padding: 1rem;
 }
 
@@ -695,16 +941,16 @@ hr {
   display: flex;
   gap: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid rgba(0,0,0,0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .chatbot-input input {
   flex: 1;
   padding: 0.5rem 1rem;
   border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   outline: none;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .chatbot-input button {
@@ -721,7 +967,7 @@ hr {
   position: fixed;
   top: 10px;
   right: 10px; /* lebih rapat ke pojok */
-  background: transparent; 
+  background: transparent;
   border: none;
   font-size: 3rem; /* lebih besar */
   line-height: 1;
@@ -735,4 +981,3 @@ hr {
 .close-btn:hover {
   color: #0984e3; /* efek hover */
 }
-

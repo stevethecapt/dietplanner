@@ -24,6 +24,14 @@
     {% endif %} {% endwith %}
 
     <header>
+      <!-- <li>
+        <a
+          href="/error-demo"
+          class="btn-secondary small"
+          style="margin-left: 8px"
+          >Error Demo</a
+        >
+      </li> -->
       <nav>
         <div class="logo">DietPlanner</div>
         <ul>
@@ -33,6 +41,22 @@
           <li><a href="#contact">Contact</a></li>
           {% if session.get('username') %}
           <li><a href="#" id="userBtn">{{ session['username'] }}</a></li>
+          <li>
+            <a
+              href="{{ url_for('food_log') }}"
+              class="btn-secondary small"
+              style="margin-left: 8px"
+              >Food Log</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('history') }}"
+              class="btn-secondary small"
+              style="margin-left: 8px"
+              >Riwayat</a
+            >
+          </li>
           {% else %}
           <li><a href="{{ url_for('login') }}">Login</a></li>
           <li><a href="{{ url_for('signup') }}">SignUp</a></li>
@@ -40,11 +64,49 @@
         </ul>
       </nav>
     </header>
-    <div id="userPopup" class="user-popup hidden">
-      <p><strong>Name:</strong> <span id="popupFullname"></span></p>
-      <p><strong>Email:</strong> <span id="popupEmail"></span></p>
-      <p><strong>Joined:</strong> <span id="popupJoined"></span></p>
-      <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    <div id="userPopup" class="user-popup hidden" aria-hidden="true">
+      <div class="popup-header">
+        <div class="popup-avatar" id="popupAvatar">
+          {{ session.get('username')[0]|upper if session.get('username') else ''
+          }}
+        </div>
+        <div class="popup-meta">
+          <div class="popup-name" id="popupFullname">&nbsp;</div>
+          <div class="popup-email" id="popupEmail">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="popup-stats">
+        <div class="stat-row">
+          <span class="stat-label">BMI terakhir</span
+          ><span class="stat-value" id="popupBMI">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Target kalori</span
+          ><span class="stat-value" id="popupCalories">-</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Target</span
+          ><span class="stat-value" id="popupGoal">-</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              id="popupProgressFill"
+              style="width: 0%"
+            ></div>
+          </div>
+          <div class="progress-text" id="popupProgressText">0%</div>
+        </div>
+      </div>
+
+      <div class="popup-footer">
+        <div class="popup-joined">
+          <small>Bergabung: <span id="popupJoined">-</span></small>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+      </div>
     </div>
     <script src="{{ url_for('static', filename='user_popup.js') }}"></script>
 
@@ -59,6 +121,12 @@
         {% if session.get('username') %}
         <a href="{{ url_for('dietplanner') }}" class="btn-primary"
           >Get Started</a
+        >
+        <a
+          href="{{ url_for('history') }}"
+          class="btn-secondary"
+          style="margin-left: 12px"
+          >Riwayat Progress</a
         >
         {% else %}
         <!-- Unauthenticated: show modal confirm instead of direct link -->
@@ -77,16 +145,32 @@
       <h2>Key Features</h2>
       <div class="feature-grid">
         <div class="feature-card">
-          <div class="icon">🍎</div>
-          <h3>Personalized Plans</h3>
-          <p>Get diet plans based on your goals, preferences, and lifestyle.</p>
-        </div>
-        <div class="feature-card">
-          <div class="icon">📊</div>
-          <h3>Track Progress</h3>
+          <div class="feature-icon">🧾</div>
+          <h3>Diet Planner</h3>
           <p>
-            Monitor your intake and see real-time progress towards your targets.
+            Hitung BMI/BMR serta dapatkan rekomendasi kalori, protein, dan
+            jadwal olahraga.
           </p>
+          <div class="feature-cta">
+            <a class="btn-primary small" href="{{ url_for('dietplanner') }}"
+              >Buka Planner</a
+            >
+          </div>
+        </div>
+
+        <!-- Removed Progress Tracking & Nutrition Tips cards per request -->
+
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>AI Chatbot</h3>
+          <p>
+            Dapatkan saran personal lewat panel chat AI untuk menu dan latihan.
+          </p>
+          <div class="feature-cta">
+            <button class="btn-primary small" onclick="openChatbot()">
+              Buka Chatbot
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -94,6 +178,49 @@
     <footer>
       <p>&copy; 2023 DietPlanner. All rights reserved.</p>
     </footer>
+    <!-- Floating chat button (Tanya Ainya) placed on right-bottom -->
+    <div class="ai-chatbot-container" aria-hidden="false">
+      <button
+        class="btn-primary"
+        title="Tanya Ainya"
+        aria-label="Tanya Ainya"
+        onclick="openChatbot()"
+      >
+        <span class="btn-logo">🤖</span>
+      </button>
+    </div>
+
+    <!-- Chatbot Panel -->
+    <div
+      id="chatbotPanel"
+      class="chatbot-panel hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="chatbot-title"
+    >
+      <div class="chatbot-header">
+        <span id="chatbot-title">Ainya - DietPlanner Chatbot</span>
+        <button class="close-btn" onclick="closeChatbot()" title="Tutup">
+          ×
+        </button>
+      </div>
+      <div
+        id="chatMessages"
+        class="chatbot-messages"
+        tabindex="0"
+        aria-live="polite"
+      ></div>
+      <div class="chatbot-input-row">
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Tulis pertanyaan seputar diet..."
+          autocomplete="off"
+        />
+        <button class="send-btn" onclick="sendMessage()">Kirim</button>
+      </div>
+    </div>
+
     <!-- Auth modal (hidden by default). login URL stored in data-login-url -->
     <div
       id="auth-modal"
@@ -120,6 +247,7 @@
       </div>
     </div>
 
+    <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
     <script>
       (function () {
         var btn = document.getElementById("get-started-btn");

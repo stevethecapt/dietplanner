@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Riwayat Progress - DietPlanner</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <div class="logo">DietPlanner</div>
+        <ul>
+          <li><a href="{{ url_for('index') }}">Home</a></li>
+          <li><a href="{{ url_for('dietplanner') }}">Diet Planner</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="container" style="margin-top: 120px; padding: 1rem">
+      <h2 style="margin-bottom: 2rem">Riwayat Progress Anda</h2>
+      {% if rows %}
+      <div class="history-table-card">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>BMI</th>
+              <th>Kalori Harian</th>
+              <th>Goal</th>
+              <th>Goal Kalori</th>
+              <th>Progress (%)</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td>{{ r.created_at }}</td>
+              <td>{{ r.bmi }}</td>
+              <td>{{ r.daily_calories }}</td>
+              <td>{{ r.goal_label }}</td>
+              <td>{{ r.goal_calories }}</td>
+              <td>
+                {{ r.progress_percent if r.progress_percent is not none else '-'
+                }}
+              </td>
+              <td>
+                <form
+                  method="POST"
+                  action="{{ url_for('delete_history', history_id=r.id) }}"
+                  style="display: inline"
+                >
+                  <button
+                    type="submit"
+                    class="btn-danger small"
+                    title="Hapus riwayat"
+                    onclick="return confirm('Hapus riwayat ini?')"
+                  >
+                    <span style="font-size: 1.1em">🗑️</span> Hapus
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-history">
+        <p>
+          Tidak ada riwayat. Mulai hitung di Diet Planner untuk menyimpan
+          progress.
+        </p>
+        <a href="{{ url_for('dietplanner') }}" class="btn-primary small"
+          >Kembali ke Planner</a
+        >
+      </div>
+      {% endif %}
+    </main>
+  </body>
+</html>
